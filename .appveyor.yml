@@ -1,20 +1,43 @@
-image: Ubuntu1804
+# http://www.appveyor.com/docs/appveyor-yml
 
-stack: node 12
+# Set build version format here instead of in the admin panel
+version: '{build}'
 
-branches:
-  only:
-    - main
+# Do not build on gh tags
+skip_tags: true
 
-cache: node_modules
+# Test against these versions of Node.js
+environment:
+  matrix:
+    # Node versions to run
+    - nodejs_version: 'Current'
+    - nodejs_version: 'LTS'
 
+# Fix line endings in Windows. (runs before repo cloning)
+init:
+  - git config --global core.autocrlf input
+
+# Install scripts--runs after repo cloning
 install:
-  - npm install
+  # Install the latest stable version of Node
+  - ps: Install-Product node $env:nodejs_version
+  - npm ci
 
+# Disable automatic builds
 build: off
 
-build_script:
+# Post-install test scripts
+test_script:
+  # Output debugging info
+  - node --version
+  - node ./internals/scripts/generate-templates-for-linting
+  # run tests and run build
+  - npm run test
   - npm run build
+
+# Cache node_modules for faster builds
+cache:
+  - node_modules -> package.json
 
 deploy_script:
   - git config --global credential.helper store
